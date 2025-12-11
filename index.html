@@ -1,252 +1,206 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <title>DAK To-Do</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DAK To-Do</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 16px;
-      background: transparent;
-      font-family: 'Comfortaa', system-ui, sans-serif;
-      color: #ffffff;
-    }
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;600&display=swap" rel="stylesheet">
 
-    body {
-      font-size: 16px;
-    }
+<style>
+  html, body {
+    margin: 0;
+    padding: 16px;
+    background: transparent;
+    font-family: 'Comfortaa', sans-serif;
+    color: #ffffff;
+  }
 
-    h2 {
-      margin: 0 0 12px;
-      font-size: 20px;
-      font-weight: 600;
-    }
+  h2 {
+    margin-top: 0;
+    font-size: 22px;
+    font-weight: 600;
+  }
 
-    #addRow {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
+  .list {
+    margin-bottom: 18px;
+  }
 
-    #taskText {
-      flex: 1;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      background: transparent;
-      color: #ffffff;
-      font-size: 14px;
-      outline: none;
-    }
+  .listTitle {
+    font-size: 15px;
+    opacity: 0.8;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
 
-    #categorySelect, #addBtn {
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      background: transparent;
-      color: #ffffff;
-      font-size: 13px;
-      outline: none;
-    }
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 6px 0;
+  }
 
-    #addBtn {
-      cursor: pointer;
-      white-space: nowrap;
-    }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 15px;
+    cursor: grab;
+  }
 
-    #lists {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 8px;
-    }
+  li.done span {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
 
-    .list {
-      margin-top: 4px;
-    }
+  input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: #ffffff;
+  }
 
-    .listTitle {
-      font-size: 14px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      opacity: 0.8;
-      margin-bottom: 4px;
-    }
+  .addLink {
+    font-size: 14px;
+    opacity: 0.8;
+    cursor: pointer;
+  }
 
-    ul {
-      list-style: none;
-      padding-left: 0;
-      margin: 0;
-    }
+  .addLink:hover {
+    opacity: 1;
+  }
 
-    li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 2px 0;
-      font-size: 14px;
-    }
-
-    input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      accent-color: #ffffff;
-    }
-
-    .done span {
-      text-decoration: line-through;
-      opacity: 0.5;
-    }
-
-    .empty {
-      opacity: 0.4;
-      font-size: 12px;
-    }
-  </style>
+  /* Drag target area */
+  .dropZone {
+    min-height: 10px;
+  }
+</style>
 </head>
+
 <body>
-  <h2>To-Dos</h2>
+<h2>To-Dos</h2>
 
-  <div id="addRow">
-    <input id="taskText" type="text" placeholder="Add a task…" />
-    <select id="categorySelect"></select>
-    <button id="addBtn">Add</button>
-  </div>
+<div id="lists"></div>
 
-  <div id="lists"></div>
+<script>
+const API_BASE = "https://script.google.com/macros/s/AKfycbxiEJYTarlrz6WS3Xy0vN4GfI9BOETheIvQV6y-ireSIrmw3GFs11afETn7ziv8nV6d/exec";  // <-- paste Apps Script URL
 
-  <script>
-    const API_BASE = "https://script.google.com/macros/s/AKfycbxiEJYTarlrz6WS3Xy0vN4GfI9BOETheIvQV6y-ireSIrmw3GFs11afETn7ziv8nV6d/exec
-"; // <-- paste your Apps Script /exec URL here
+let CATEGORIES = ["This Week", "For Later"];
+let tasks = [];
 
-    let CATEGORIES = ["This Week", "For Later"];
-    let tasks = [];
+// Simple API wrappers
+async function apiGet(action) {
+  const res = await fetch(`${API_BASE}?action=${action}`);
+  return res.json();
+}
 
-    async function apiGet(action) {
-      const res = await fetch(`${API_BASE}?action=${encodeURIComponent(action)}`);
-      return res.json();
-    }
+async function apiPost(action, data) {
+  const res = await fetch(`${API_BASE}?action=${action}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data || {})
+  });
+  return res.json();
+}
 
-    async function apiPost(action, data) {
-      const res = await fetch(`${API_BASE}?action=${encodeURIComponent(action)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data || {})
-      });
-      return res.json();
-    }
+async function loadTasks() {
+  const data = await apiGet("list");
+  tasks = data.tasks || [];
+  render();
+}
 
-    async function loadTasks() {
-      try {
-        const data = await apiGet("list");
-        if (data.categories && Array.isArray(data.categories)) {
-          CATEGORIES = data.categories;
-        }
-        tasks = data.tasks || [];
-        render();
-      } catch (err) {
-        console.error("Error loading tasks", err);
-      }
-    }
+// Add task to specific category
+async function addTask(category) {
+  const text = prompt(`Add task to ${category}:`);
+  if (!text) return;
 
-    async function onAdd() {
-      const textEl = document.getElementById('taskText');
-      const catEl = document.getElementById('categorySelect');
-      const text = textEl.value.trim();
-      if (!text) return;
-      const category = catEl.value || CATEGORIES[0];
+  const data = await apiPost("add", { text, category });
+  tasks = data.tasks;
+  render();
+}
 
-      document.getElementById('addBtn').disabled = true;
-      try {
-        const data = await apiPost("add", { text, category });
-        tasks = data.tasks || [];
-        textEl.value = "";
-        render();
-      } catch (err) {
-        console.error("Error adding task", err);
-      } finally {
-        document.getElementById('addBtn').disabled = false;
-      }
-    }
+// Toggle done/undone
+async function toggleTask(id, checked) {
+  const data = await apiPost("toggle", { id, done: checked });
+  tasks = data.tasks;
+  render();
+}
 
-    async function toggleTask(id, checkbox) {
-      const done = checkbox.checked;
-      try {
-        const data = await apiPost("toggle", { id, done });
-        tasks = data.tasks || [];
-        render();
-      } catch (err) {
-        console.error("Error toggling task", err);
-      }
-    }
+// Move task (drag + drop)
+async function moveTask(id, category) {
+  const data = await apiPost("move", { id, category });
+  tasks = data.tasks;
+  render();
+}
 
-    function render() {
-      const container = document.getElementById('lists');
-      container.innerHTML = "";
+// Render UI
+function render() {
+  const container = document.getElementById("lists");
+  container.innerHTML = "";
 
-      CATEGORIES.forEach(cat => {
-        const listTasks = tasks.filter(t => t.category === cat);
+  CATEGORIES.forEach(cat => {
+    const listDiv = document.createElement("div");
+    listDiv.className = "list";
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'list';
+    const title = document.createElement("div");
+    title.className = "listTitle";
+    title.textContent = cat;
+    listDiv.appendChild(title);
 
-        const title = document.createElement('div');
-        title.className = 'listTitle';
-        title.textContent = cat;
-        wrapper.appendChild(title);
+    const ul = document.createElement("ul");
 
-        if (listTasks.length === 0) {
-          const empty = document.createElement('div');
-          empty.className = 'empty';
-          empty.textContent = 'No tasks';
-          wrapper.appendChild(empty);
-        } else {
-          const ul = document.createElement('ul');
-          listTasks.forEach(t => {
-            const li = document.createElement('li');
-            if (t.done) li.classList.add('done');
+    tasks
+      .filter(t => t.category === cat)
+      .forEach(t => {
+        const li = document.createElement("li");
+        li.draggable = true;
 
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.checked = t.done;
-            cb.addEventListener('change', () => toggleTask(t.id, cb));
+        if (t.done) li.classList.add("done");
 
-            const span = document.createElement('span');
-            span.textContent = t.text;
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = t.done;
+        cb.onchange = () => toggleTask(t.id, cb.checked);
 
-            li.appendChild(cb);
-            li.appendChild(span);
-            ul.appendChild(li);
-          });
-          wrapper.appendChild(ul);
-        }
+        const text = document.createElement("span");
+        text.textContent = t.text;
 
-        container.appendChild(wrapper);
-      });
-    }
+        // DRAG & DROP EVENTS
+        li.addEventListener("dragstart", e => {
+          e.dataTransfer.setData("text/plain", t.id);
+        });
 
-    function init() {
-      const sel = document.getElementById('categorySelect');
-      CATEGORIES.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        sel.appendChild(opt);
+        ul.appendChild(li);
+        li.appendChild(cb);
+        li.appendChild(text);
       });
 
-      document.getElementById('addBtn').addEventListener('click', onAdd);
-      document.getElementById('taskText').addEventListener('keydown', e => {
-        if (e.key === 'Enter') onAdd();
-      });
+    // Drop zone for drag & drop reassigning
+    const dropZone = document.createElement("div");
+    dropZone.className = "dropZone";
 
-      loadTasks();
-    }
+    dropZone.addEventListener("dragover", e => e.preventDefault());
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData("text/plain");
+      moveTask(id, cat);
+    });
 
-    window.addEventListener('load', init);
-  </script>
+    listDiv.appendChild(ul);
+    listDiv.appendChild(dropZone);
+
+    // Add Task link
+    const add = document.createElement("div");
+    add.className = "addLink";
+    add.textContent = "+ Add task";
+    add.onclick = () => addTask(cat);
+    listDiv.appendChild(add);
+
+    container.appendChild(listDiv);
+  });
+}
+
+loadTasks();
+</script>
 </body>
 </html>
