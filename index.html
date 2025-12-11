@@ -1,206 +1,232 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>DAK To-Do</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DAK To-Do</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;600&display=swap" rel="stylesheet">
 
-<style>
-  html, body {
-    margin: 0;
-    padding: 16px;
-    background: transparent;
-    font-family: 'Comfortaa', sans-serif;
-    color: #ffffff;
-  }
+  <style>
+    html, body {
+      margin: 0;
+      padding: 16px;
+      background: transparent;
+      font-family: 'Comfortaa', sans-serif;
+      color: #ffffff;
+    }
 
-  h2 {
-    margin-top: 0;
-    font-size: 22px;
-    font-weight: 600;
-  }
+    h2 {
+      margin-top: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
 
-  .list {
-    margin-bottom: 18px;
-  }
+    .list {
+      margin-bottom: 18px;
+    }
 
-  .listTitle {
-    font-size: 15px;
-    opacity: 0.8;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
+    .listTitle {
+      font-size: 15px;
+      opacity: 0.8;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
 
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 6px 0;
-  }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 6px 0;
+    }
 
-  li {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-    font-size: 15px;
-    cursor: grab;
-  }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 15px;
+      cursor: grab;
+    }
 
-  li.done span {
-    text-decoration: line-through;
-    opacity: 0.5;
-  }
+    li.done span {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
 
-  input[type="checkbox"] {
-    width: 17px;
-    height: 17px;
-    accent-color: #ffffff;
-  }
+    input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: #ffffff;
+    }
 
-  .addLink {
-    font-size: 14px;
-    opacity: 0.8;
-    cursor: pointer;
-  }
+    .addLink {
+      font-size: 14px;
+      opacity: 0.8;
+      cursor: pointer;
+    }
 
-  .addLink:hover {
-    opacity: 1;
-  }
+    .addLink:hover {
+      opacity: 1;
+    }
 
-  /* Drag target area */
-  .dropZone {
-    min-height: 10px;
-  }
-</style>
+    .empty {
+      font-size: 13px;
+      opacity: 0.5;
+    }
+
+    .dropZone {
+      min-height: 8px;
+    }
+  </style>
 </head>
 
 <body>
-<h2>To-Dos</h2>
+  <h2>To-Dos</h2>
 
-<div id="lists"></div>
+  <div id="lists"></div>
 
-<script>
-const API_BASE = "https://script.google.com/macros/s/AKfycbxiEJYTarlrz6WS3Xy0vN4GfI9BOETheIvQV6y-ireSIrmw3GFs11afETn7ziv8nV6d/exec";  // <-- paste Apps Script URL
+  <script>
+    // 🔧 PUT YOUR SCRIPT URL HERE (the /exec URL from Apps Script)
+    const API_BASE = "https://script.google.com/macros/s/AKfycbxiEJYTarlrz6WS3Xy0vN4GfI9BOETheIvQV6y-ireSIrmw3GFs11afETn7ziv8nV6d/exec";
 
-let CATEGORIES = ["This Week", "For Later"];
-let tasks = [];
+    let CATEGORIES = ["This Week", "For Later"];
+    let tasks = [];
 
-// Simple API wrappers
-async function apiGet(action) {
-  const res = await fetch(`${API_BASE}?action=${action}`);
-  return res.json();
-}
+    async function apiGet(action) {
+      const res = await fetch(`${API_BASE}?action=${action}`);
+      return res.json();
+    }
 
-async function apiPost(action, data) {
-  const res = await fetch(`${API_BASE}?action=${action}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data || {})
-  });
-  return res.json();
-}
-
-async function loadTasks() {
-  const data = await apiGet("list");
-  tasks = data.tasks || [];
-  render();
-}
-
-// Add task to specific category
-async function addTask(category) {
-  const text = prompt(`Add task to ${category}:`);
-  if (!text) return;
-
-  const data = await apiPost("add", { text, category });
-  tasks = data.tasks;
-  render();
-}
-
-// Toggle done/undone
-async function toggleTask(id, checked) {
-  const data = await apiPost("toggle", { id, done: checked });
-  tasks = data.tasks;
-  render();
-}
-
-// Move task (drag + drop)
-async function moveTask(id, category) {
-  const data = await apiPost("move", { id, category });
-  tasks = data.tasks;
-  render();
-}
-
-// Render UI
-function render() {
-  const container = document.getElementById("lists");
-  container.innerHTML = "";
-
-  CATEGORIES.forEach(cat => {
-    const listDiv = document.createElement("div");
-    listDiv.className = "list";
-
-    const title = document.createElement("div");
-    title.className = "listTitle";
-    title.textContent = cat;
-    listDiv.appendChild(title);
-
-    const ul = document.createElement("ul");
-
-    tasks
-      .filter(t => t.category === cat)
-      .forEach(t => {
-        const li = document.createElement("li");
-        li.draggable = true;
-
-        if (t.done) li.classList.add("done");
-
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.checked = t.done;
-        cb.onchange = () => toggleTask(t.id, cb.checked);
-
-        const text = document.createElement("span");
-        text.textContent = t.text;
-
-        // DRAG & DROP EVENTS
-        li.addEventListener("dragstart", e => {
-          e.dataTransfer.setData("text/plain", t.id);
-        });
-
-        ul.appendChild(li);
-        li.appendChild(cb);
-        li.appendChild(text);
+    async function apiPost(action, data) {
+      const res = await fetch(`${API_BASE}?action=${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data || {})
       });
+      return res.json();
+    }
 
-    // Drop zone for drag & drop reassigning
-    const dropZone = document.createElement("div");
-    dropZone.className = "dropZone";
+    async function loadTasks() {
+      try {
+        const data = await apiGet("list");
+        if (data && Array.isArray(data.categories)) {
+          CATEGORIES = data.categories;
+        }
+        tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
+      } catch (err) {
+        console.error("Error loading tasks", err);
+        // fall back to whatever tasks we had (or empty)
+        tasks = tasks || [];
+      }
+      render();
+    }
 
-    dropZone.addEventListener("dragover", e => e.preventDefault());
-    dropZone.addEventListener("drop", e => {
-      e.preventDefault();
-      const id = e.dataTransfer.getData("text/plain");
-      moveTask(id, cat);
-    });
+    async function addTask(category) {
+      const text = prompt(`Add task to ${category}:`);
+      if (!text) return;
 
-    listDiv.appendChild(ul);
-    listDiv.appendChild(dropZone);
+      try {
+        const data = await apiPost("add", { text, category });
+        tasks = data.tasks || [];
+        render();
+      } catch (err) {
+        console.error("Error adding task", err);
+        alert("Couldn't add task (check API URL / permissions).");
+      }
+    }
 
-    // Add Task link
-    const add = document.createElement("div");
-    add.className = "addLink";
-    add.textContent = "+ Add task";
-    add.onclick = () => addTask(cat);
-    listDiv.appendChild(add);
+    async function toggleTask(id, checked) {
+      try {
+        const data = await apiPost("toggle", { id, done: checked });
+        tasks = data.tasks || [];
+        render();
+      } catch (err) {
+        console.error("Error toggling task", err);
+        alert("Couldn't update task.");
+      }
+    }
 
-    container.appendChild(listDiv);
-  });
-}
+    async function moveTask(id, category) {
+      try {
+        const data = await apiPost("move", { id, category });
+        tasks = data.tasks || [];
+        render();
+      } catch (err) {
+        console.error("Error moving task", err);
+        alert("Couldn't move task.");
+      }
+    }
 
-loadTasks();
-</script>
+    function render() {
+      const container = document.getElementById("lists");
+      container.innerHTML = "";
+
+      CATEGORIES.forEach(cat => {
+        const listDiv = document.createElement("div");
+        listDiv.className = "list";
+
+        const title = document.createElement("div");
+        title.className = "listTitle";
+        title.textContent = cat;
+        listDiv.appendChild(title);
+
+        const ul = document.createElement("ul");
+        const listTasks = tasks.filter(t => t.category === cat);
+
+        if (listTasks.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "No tasks";
+          listDiv.appendChild(empty);
+        } else {
+          listTasks.forEach(t => {
+            const li = document.createElement("li");
+            li.draggable = true;
+
+            if (t.done) li.classList.add("done");
+
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = t.done;
+            cb.onchange = () => toggleTask(t.id, cb.checked);
+
+            const textSpan = document.createElement("span");
+            textSpan.textContent = t.text;
+
+            li.addEventListener("dragstart", e => {
+              e.dataTransfer.setData("text/plain", t.id);
+            });
+
+            li.appendChild(cb);
+            li.appendChild(textSpan);
+            ul.appendChild(li);
+          });
+        }
+
+        listDiv.appendChild(ul);
+
+        const dropZone = document.createElement("div");
+        dropZone.className = "dropZone";
+        dropZone.addEventListener("dragover", e => e.preventDefault());
+        dropZone.addEventListener("drop", e => {
+          e.preventDefault();
+          const id = e.dataTransfer.getData("text/plain");
+          if (id) moveTask(id, cat);
+        });
+        listDiv.appendChild(dropZone);
+
+        const add = document.createElement("div");
+        add.className = "addLink";
+        add.textContent = "+ Add task";
+        add.onclick = () => addTask(cat);
+        listDiv.appendChild(add);
+
+        container.appendChild(listDiv);
+      });
+    }
+
+    window.addEventListener("load", loadTasks);
+  </script>
 </body>
 </html>
