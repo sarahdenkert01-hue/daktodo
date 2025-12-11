@@ -1,232 +1,298 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DAK To-Do</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;600&display=swap" rel="stylesheet">
+        body {
+            font-family: 'Comfortaa', cursive;
+            background: transparent;
+            padding: 30px;
+        }
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 16px;
-      background: transparent;
-      font-family: 'Comfortaa', sans-serif;
-      color: #ffffff;
-    }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
 
-    h2 {
-      margin-top: 0;
-      font-size: 22px;
-      font-weight: 600;
-    }
+        .list-container {
+            margin-bottom: 60px;
+        }
 
-    .list {
-      margin-bottom: 18px;
-    }
+        .list-title {
+            font-size: 36px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 25px;
+        }
 
-    .listTitle {
-      font-size: 15px;
-      opacity: 0.8;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
+        .add-task-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 6px 0;
-    }
+        .task-input {
+            flex: 1;
+            padding: 12px 5px;
+            border: none;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+            background: transparent;
+            color: #ffffff;
+            font-size: 18px;
+            font-family: 'Comfortaa', cursive;
+            outline: none;
+        }
 
-    li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 0;
-      font-size: 15px;
-      cursor: grab;
-    }
+        .task-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
 
-    li.done span {
-      text-decoration: line-through;
-      opacity: 0.5;
-    }
+        .add-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: #ffffff;
+            font-size: 32px;
+            cursor: pointer;
+            font-weight: 300;
+        }
 
-    input[type="checkbox"] {
-      width: 17px;
-      height: 17px;
-      accent-color: #ffffff;
-    }
+        .tasks {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
 
-    .addLink {
-      font-size: 14px;
-      opacity: 0.8;
-      cursor: pointer;
-    }
+        .task {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: move;
+            padding: 8px 0;
+        }
 
-    .addLink:hover {
-      opacity: 1;
-    }
+        .task.dragging {
+            opacity: 0.3;
+        }
 
-    .empty {
-      font-size: 13px;
-      opacity: 0.5;
-    }
+        .checkbox {
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .dropZone {
-      min-height: 8px;
-    }
-  </style>
+        .checkbox.checked::after {
+            content: '✓';
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 20px;
+            color: #ffffff;
+            word-break: break-word;
+        }
+
+        .task.completed .task-text {
+            text-decoration: line-through;
+            opacity: 0.4;
+        }
+
+        .delete-btn {
+            padding: 5px 10px;
+            border: none;
+            background: transparent;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .delete-btn:hover {
+            opacity: 1;
+        }
+    </style>
 </head>
-
 <body>
-  <h2>To-Dos</h2>
+    <div class="container">
+        <div class="list-container">
+            <h2 class="list-title">This Week</h2>
+            <div class="add-task-form">
+                <input type="text" class="task-input" id="thisWeekInput" placeholder="Add a task...">
+                <button class="add-btn" onclick="addTask('thisWeek')">+</button>
+            </div>
+            <div class="tasks" id="thisWeek"></div>
+        </div>
 
-  <div id="lists"></div>
+        <div class="list-container">
+            <h2 class="list-title">For Later</h2>
+            <div class="add-task-form">
+                <input type="text" class="task-input" id="forLaterInput" placeholder="Add a task...">
+                <button class="add-btn" onclick="addTask('forLater')">+</button>
+            </div>
+            <div class="tasks" id="forLater"></div>
+        </div>
+    </div>
 
-  <script>
-    // 🔧 PUT YOUR SCRIPT URL HERE (the /exec URL from Apps Script)
-    const API_BASE = "https://script.google.com/macros/s/AKfycbx5YTO4pFTjKOVm8iBteNZFAHBn-PCbQ-WFBYAKzgcqVEbzH6HxCc3ETafriKFi1Wru/exec";
+    <script>
+        let tasks = {
+            thisWeek: [],
+            forLater: []
+        };
 
-    let CATEGORIES = ["This Week", "For Later"];
-    let tasks = [];
+        let draggedTask = null;
+        let draggedFrom = null;
 
-    async function apiGet(action) {
-      const res = await fetch(`${API_BASE}?action=${action}`);
-      return res.json();
-    }
-
-    async function apiPost(action, data) {
-      const res = await fetch(`${API_BASE}?action=${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data || {})
-      });
-      return res.json();
-    }
-
-    async function loadTasks() {
-      try {
-        const data = await apiGet("list");
-        if (data && Array.isArray(data.categories)) {
-          CATEGORIES = data.categories;
+        function saveTasks() {
+            const data = JSON.stringify(tasks);
+            document.cookie = `todoTasks=${encodeURIComponent(data)}; max-age=31536000; path=/`;
         }
-        tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
-      } catch (err) {
-        console.error("Error loading tasks", err);
-        // fall back to whatever tasks we had (or empty)
-        tasks = tasks || [];
-      }
-      render();
-    }
 
-    async function addTask(category) {
-      const text = prompt(`Add task to ${category}:`);
-      if (!text) return;
+        function loadTasks() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'todoTasks') {
+                    try {
+                        tasks = JSON.parse(decodeURIComponent(value));
+                    } catch (e) {
+                        console.error('Error loading tasks:', e);
+                    }
+                    break;
+                }
+            }
+            renderTasks();
+        }
 
-      try {
-        const data = await apiPost("add", { text, category });
-        tasks = data.tasks || [];
-        render();
-      } catch (err) {
-        console.error("Error adding task", err);
-        alert("Couldn't add task (check API URL / permissions).");
-      }
-    }
+        function addTask(listId) {
+            const input = document.getElementById(listId + 'Input');
+            const text = input.value.trim();
+            
+            if (text === '') return;
+            
+            const task = {
+                id: Date.now(),
+                text: text,
+                completed: false
+            };
+            
+            tasks[listId].push(task);
+            input.value = '';
+            saveTasks();
+            renderTasks();
+        }
 
-    async function toggleTask(id, checked) {
-      try {
-        const data = await apiPost("toggle", { id, done: checked });
-        tasks = data.tasks || [];
-        render();
-      } catch (err) {
-        console.error("Error toggling task", err);
-        alert("Couldn't update task.");
-      }
-    }
+        function toggleTask(listId, taskId) {
+            const task = tasks[listId].find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                saveTasks();
+                renderTasks();
+            }
+        }
 
-    async function moveTask(id, category) {
-      try {
-        const data = await apiPost("move", { id, category });
-        tasks = data.tasks || [];
-        render();
-      } catch (err) {
-        console.error("Error moving task", err);
-        alert("Couldn't move task.");
-      }
-    }
+        function deleteTask(listId, taskId) {
+            tasks[listId] = tasks[listId].filter(t => t.id !== taskId);
+            saveTasks();
+            renderTasks();
+        }
 
-    function render() {
-      const container = document.getElementById("lists");
-      container.innerHTML = "";
-
-      CATEGORIES.forEach(cat => {
-        const listDiv = document.createElement("div");
-        listDiv.className = "list";
-
-        const title = document.createElement("div");
-        title.className = "listTitle";
-        title.textContent = cat;
-        listDiv.appendChild(title);
-
-        const ul = document.createElement("ul");
-        const listTasks = tasks.filter(t => t.category === cat);
-
-        if (listTasks.length === 0) {
-          const empty = document.createElement("div");
-          empty.className = "empty";
-          empty.textContent = "No tasks";
-          listDiv.appendChild(empty);
-        } else {
-          listTasks.forEach(t => {
-            const li = document.createElement("li");
-            li.draggable = true;
-
-            if (t.done) li.classList.add("done");
-
-            const cb = document.createElement("input");
-            cb.type = "checkbox";
-            cb.checked = t.done;
-            cb.onchange = () => toggleTask(t.id, cb.checked);
-
-            const textSpan = document.createElement("span");
-            textSpan.textContent = t.text;
-
-            li.addEventListener("dragstart", e => {
-              e.dataTransfer.setData("text/plain", t.id);
+        function renderTasks() {
+            ['thisWeek', 'forLater'].forEach(listId => {
+                const container = document.getElementById(listId);
+                container.innerHTML = '';
+                
+                tasks[listId].forEach(task => {
+                    const taskEl = document.createElement('div');
+                    taskEl.className = 'task' + (task.completed ? ' completed' : '');
+                    taskEl.draggable = true;
+                    taskEl.dataset.taskId = task.id;
+                    taskEl.dataset.listId = listId;
+                    
+                    taskEl.innerHTML = `
+                        <div class="checkbox ${task.completed ? 'checked' : ''}" onclick="toggleTask('${listId}', ${task.id})"></div>
+                        <div class="task-text">${task.text}</div>
+                        <button class="delete-btn" onclick="deleteTask('${listId}', ${task.id})">×</button>
+                    `;
+                    
+                    taskEl.addEventListener('dragstart', handleDragStart);
+                    taskEl.addEventListener('dragend', handleDragEnd);
+                    taskEl.addEventListener('dragover', handleDragOver);
+                    taskEl.addEventListener('drop', handleDrop);
+                    
+                    container.appendChild(taskEl);
+                });
             });
-
-            li.appendChild(cb);
-            li.appendChild(textSpan);
-            ul.appendChild(li);
-          });
         }
 
-        listDiv.appendChild(ul);
+        function handleDragStart(e) {
+            draggedTask = this;
+            draggedFrom = this.dataset.listId;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
 
-        const dropZone = document.createElement("div");
-        dropZone.className = "dropZone";
-        dropZone.addEventListener("dragover", e => e.preventDefault());
-        dropZone.addEventListener("drop", e => {
-          e.preventDefault();
-          const id = e.dataTransfer.getData("text/plain");
-          if (id) moveTask(id, cat);
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDrop(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            const dropListId = this.dataset.listId;
+            const draggedTaskId = parseInt(draggedTask.dataset.taskId);
+            
+            if (draggedFrom !== dropListId) {
+                const taskIndex = tasks[draggedFrom].findIndex(t => t.id === draggedTaskId);
+                if (taskIndex !== -1) {
+                    const task = tasks[draggedFrom][taskIndex];
+                    tasks[draggedFrom].splice(taskIndex, 1);
+                    tasks[dropListId].push(task);
+                    saveTasks();
+                    renderTasks();
+                }
+            }
+            
+            return false;
+        }
+
+        document.getElementById('thisWeekInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask('thisWeek');
+            }
         });
-        listDiv.appendChild(dropZone);
 
-        const add = document.createElement("div");
-        add.className = "addLink";
-        add.textContent = "+ Add task";
-        add.onclick = () => addTask(cat);
-        listDiv.appendChild(add);
+        document.getElementById('forLaterInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask('forLater');
+            }
+        });
 
-        container.appendChild(listDiv);
-      });
-    }
-
-    window.addEventListener("load", loadTasks);
-  </script>
+        loadTasks();
+    </script>
 </body>
 </html>
